@@ -2,6 +2,7 @@ const axios = require('axios');
 const Spotify = require('node-spotify-api');
 const moment = require('moment');
 const readline = require('readline');
+const _ = require('lodash');
 const input1 = process.argv[2];
 const input2 = process.argv[3];
 const input3 = process.argv[4];
@@ -12,8 +13,10 @@ const rl = readline.createInterface({
 const log = console.log;
 var typeOfSearch = () => {
   log('--------------------------------');
+  log('--------------------------------');
+  log('--------------------------------');
   rl.question(
-    'Would you like to search a movie, song, or concert locations?',
+    'Would you like to search a movie, song, or concert locations? ',
     answer => {
       log(answer);
       if (answer === 'exit') {
@@ -47,18 +50,55 @@ function spotifySearch(title, type) {
   });
 
   spotify
-    .request(`https://api.spotify.com/v1/search?q=${title}&type=${type}`)
+    .request(
+      `https://api.spotify.com/v1/search?q=${title}&type=${type}&limit=5`
+    )
     .then(function(response) {
+      log(response.artists.items[0]);
       log('---------SONGS-------');
-      for (let i = 0; i < response.tracks.items.length; i++) {
-        log(
-          response.tracks.items[i].artists[0].name +
-            ' - ' +
-            response.tracks.items[i].name
-        );
+      if (type) {
+        switch (type) {
+          case 'track':
+            for (let i = 0; i < response.tracks.items.length; i++) {
+              log(
+                response.tracks.items[i].artists[0].name +
+                  ' - ' +
+                  response.tracks.items[i].name
+              );
+            }
+            break;
+          case 'artist':
+            for (let i = 0; i < response.artists.items.length; i++) {
+              let id = response.artists.items[i].id;
+              // let topTracks = `${nameOfTrack} - ${pop}`;
+
+              // function getTopTracks(id) {
+              let spotify = new Spotify({
+                id: '5ebda250f1934294a11339a7364ff2b8',
+                secret: 'd9da14497d574143bf8fd7c608bfe0a3'
+              });
+              spotify
+                .request(
+                  `https://api.spotify.com/v1/artists/${id}/top-tracks?country=US`
+                )
+                .then(res => {
+                  let topTracks = res.tracks[0].name;
+                  log(
+                    `Name: ${response.artists.items[i].name}--Popularity: ${
+                      response.artists.items[i].popularity
+                    }--Top Tracks: ${topTracks}`
+                  );
+                  return topTracks;
+                })
+                .catch();
+            }
+
+            break;
+        }
       }
-      rl.question('Did you find your song? yes/no: ', answer => {
+      rl.question('Did you find your song or artist? yes/no: ', answer => {
         if (answer === 'yes') {
+          log('--------------------------------');
           log('--------------------------------');
 
           log(
@@ -85,6 +125,32 @@ function spotifySearch(title, type) {
     });
 }
 
+//do some operations
+
+function getTopTracks(id) {
+  let spotify = new Spotify({
+    id: '5ebda250f1934294a11339a7364ff2b8',
+    secret: 'd9da14497d574143bf8fd7c608bfe0a3'
+  });
+  return spotify.request(
+    `https://api.spotify.com/v1/artists/${id}/top-tracks?country=US`
+  );
+}
+
+// function getTopTracks(id) {
+//   let spotify = new Spotify({
+//     id: '5ebda250f1934294a11339a7364ff2b8',
+//     secret: 'd9da14497d574143bf8fd7c608bfe0a3'
+//   });
+//   spotify
+//     .request(`https://api.spotify.com/v1/artists/${id}/top-tracks?country=US`)
+//     .then(response => {
+//       let topTracks = response.tracks[0].name;
+//       return topTracks;
+//     })
+//     .catch();
+//   log('toppy' + topTracks);
+// }
 function movieSearch() {
   let movieName = input2;
   var queryUrl = 'http://www.omdbapi.com/?t=' + movieName + '&apikey=c7572ae8';
@@ -104,7 +170,7 @@ function movieSearch() {
 }
 function songSearcher() {
   rl.question(
-    'whats the title? (No worries type no if you do not know): ',
+    'enter an artist, for tracks OR enter a song for related tracks by all viable artists (No worries type no if you do not know): ',
     answer => {
       log('--------------------------------');
       if (answer !== 'no') {
@@ -118,7 +184,7 @@ function songSearcher() {
         spotifySearch(searchQuery, 'track');
       } else {
         rl.question(
-          'Search by artist (No worries type no if you do not know): ',
+          'Search Artist (No worries type no if you do not know): ',
           answer => {
             spotifySearch(answer, 'artist');
           }
